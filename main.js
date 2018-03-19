@@ -11,8 +11,8 @@ var optionOne = function() {
     rl.question('Name:  ', function(name) {
         fs.readFile('phonebook.txt', function(err, data){
             var stringData = data.toString(); 
-            var splitData = stringData.split("\n")
-            splitData.forEach(function(entry) {
+            var phoneList = stringData.split("\n")
+            phoneList.forEach(function(entry) {
                 if (entry.includes(name)) {
                     console.log(entry);
                 }
@@ -44,17 +44,29 @@ var optionThree = function() {
     rl.question('Name:  ', function(name) {
         fs.readFile('phonebook.txt', function(err, data){
             var stringData = data.toString(); 
-            var splitData = stringData.split("\n")
-            splitData.forEach(function(entry) {
+            var phoneList = stringData.split("\n")
+            phoneList.forEach(function(entry, i) {
                 if (entry.includes(name)) {
-                    console.log(entry);
+                    phoneList.splice(i, 1);
+                    console.log('Entry Deleted')
                 }
             })
+            fs.writeFile('phonebook.txt', '', function (err) {
+                if (err) {
+                    console.log(err);
+                }
+            })
+            phoneList.forEach(function (entry) {
+                fs.appendFile('phonebook.txt', (entry + '\n'), function (err) {
+                    if (err) {
+                        console.log(err);
+                    } 
+                })
+            })
             initiatePhonebook();
-    })
+        })
     })
 };
-
 
 var optionFour = function() {
     fs.readFile('phonebook.txt', function(err, data){
