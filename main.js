@@ -1,92 +1,122 @@
 var fs = require('fs');
 var readline = require('readline');
+var promisify = require('util').promisify;
+
+var phoneBook = 'phonebook.txt'
 
 var rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-
-var optionOne = function() {
-    rl.question('Name:  ', function(name) {
-        fs.readFile('phonebook.txt', function(err, data){
-            var stringData = data.toString(); 
-            var phoneList = stringData.split("\n")
-            phoneList.forEach(function(entry) {
-                if (entry.includes(name)) {
-                    console.log(entry);
-                }
-            })
-            initiatePhonebook();
-    })
-    })
+var rlQuestion = function(question) {
+    return new Promise(function(resolve) {
+        rl.question(question, resolve);
+    });
 };
 
-var optionTwo = function() {
-    rl.question('First Name: ', function (firstName) {
-        rl.question('Last Name: ', function (lastName) {
-            rl.question('Phone Number: ', function (phoneNumber) {
-                var entry = `\n${firstName} ${lastName} ${phoneNumber}`
-                fs.appendFile('phonebook.txt', entry, function(err) {
-                    if (err) {
-                        console.log(err)
-                    } else {
-                        console.log('Entry Saved');
-                    }
-                    initiatePhonebook();
-                })
-                });
-            })
-    })
-}
+var readFile = promisify(fs.readFile);
+var writeFile = promisify(fs.writeFile)
+var appendFile = promisify(fs.appendFile)
 
-var optionThree = function() {
-    rl.question('Name:  ', function(name) {
-        fs.readFile('phonebook.txt', function(err, data){
-            var stringData = data.toString(); 
-            var phoneList = stringData.split("\n")
-            phoneList.forEach(function(entry, i) {
-                if (entry.includes(name)) {
-                    phoneList.splice(i, 1);
-                    console.log('Entry Deleted')
-                }
-            })
-            fs.writeFile('phonebook.txt', '', function (err) {
-                if (err) {
-                    console.log(err);
-                }
-            })
-            phoneList.forEach(function (entry) {
-                fs.appendFile('phonebook.txt', (entry + '\n'), function (err) {
-                    if (err) {
-                        console.log(err);
-                    } 
-                })
-            })
-            initiatePhonebook();
+var lookUpAnEntry = function() {
+    var phoneList;
+    readFile(phoneBook)
+    .then(function(data) {
+        var stringData = data.toString(); 
+        phoneList = stringData.split("\n")
+        return phoneList;
+    })
+    .then(function (data) {
+        return rlQuestion('Name: ')
+    })
+    .then(function(name) {
+        phoneList.forEach(function(entry) {
+            if (entry.includes(name)) {
+                console.log(entry);
+            }
         })
     })
+    .then(function() {
+        initiatePhonebook();
+    })
 };
 
-var optionFour = function() {
-    fs.readFile('phonebook.txt', function(err, data){
-    var stringData = data.toString();
-    console.log(stringData);
-    initiatePhonebook();
+var addNewEntry = function() {
+    var entry = '\n';
+    rlQuestion('First Name: ')
+    .then(function(firstName) {
+        entry += `${firstName}`
+        return rlQuestion('Last Name: ')
+    })
+    .then(function(lastName) {
+        entry += ` ${lastName}`
+        return rlQuestion('Phone Number: ')
+    })
+    .then(function(phoneNumber) {
+        entry += ` ${phoneNumber}`
+        return appendFile(phoneBook, entry)
+    })
+    .then(function() {
+        console.log('Entry Saved')
+    })
+    .then(function() {
+        initiatePhonebook();
+    })
+}   
+
+var deleteAnEntry = function() {
+    var phoneList;
+    readFile(phoneBook)
+    .then(function(data) {
+        var stringData = data.toString(); 
+        phoneList = stringData.split("\n")
+        return phoneList;
+    })
+    .then(function() {
+        return rlQuestion('Name: ')
+    }) 
+    .then(function(name){
+        phoneList.forEach(function(entry, i) {
+            if (entry.includes(name)) {
+                phoneList.splice(i, 1);
+                console.log('Entry Deleted')
+            }  
+    })
+        return writeFile(phoneBook, '')
+    })
+    .then(function() {
+        phoneList.forEach(function (entry) {
+            appendFile('phonebook.txt', (entry + '\n'))
+        })
+    })
+    .then(function(){
+        initiatePhonebook();
+    })
+};
+
+var listAllEntries = function() {
+    readFile(phoneBook)
+    .then(function(data) {
+        var stringData = data.toString();
+        console.log(stringData);
+    })
+    .then(function(){
+        initiatePhonebook();
     })
 }
 
 var initiatePhonebook = function() {
-    rl.question ('Choose an option: 1. Look up an entry, 2. Set an entry, 3. Delete an entry, 4. List all entries, 5. Quit  ', function(option) {
+    rl.question ('Choose an option: 1. Look up an entry, 2. Add new entry, 3. Delete an entry, 4. List all entries, 5. Quit  ', function(option) {
         var optionNum = Number(option)
         if (optionNum ===1) {
-            optionOne();
+            lookUpAnEntry();
         } else if (optionNum === 2) {
-            optionTwo();
+            addNewEntry();
         } else if (optionNum ===3) {
-            optionThree();
+            deleteAnEntry();
         } else if (optionNum ===4) {
-            optionFour();
+            listAllEntries();
         } else if (optionNum === 5) {
             rl.close()
         }
